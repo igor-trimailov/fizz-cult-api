@@ -10,40 +10,34 @@ const {
 } = require('../util/transport')
 
 module.exports = {
-  create: function(req, res, next) {
+  create: function (req, res, next) {
     userModel.create(
       {
         ...req.body,
         posted_on: new Date(),
       },
-      function(err) {
+      function (err) {
         if (err) {
           // handle validation errors
           if (err.name === 'ValidationError') {
             return res.status(422).send({
-              status: 'error',
-              message: 'Validation error',
-              data: {
-                message: err.errors[Object.keys(err.errors)[0]].message,
-              },
+              success: false,
+              message: err.errors[Object.keys(err.errors)[0]].message,
             })
           }
 
           // duplicate key will reply with mongo error, not validator
           if (err.name === 'MongoError' && err.code === 11000) {
             return res.status(422).send({
-              status: 'error',
-              message: 'Validation error',
-              data: {
-                message: 'User name or password already in use',
-              },
+              success: false,
+              message: 'User name or password already in use',
             })
           }
 
           next(err)
         } else {
           res.json({
-            status: 'success',
+            success: true,
             message: 'User added successfully',
           })
         }
@@ -51,15 +45,15 @@ module.exports = {
     )
   },
 
-  authenticate: function(req, res, next) {
-    userModel.findOne({ email: req.body.email }, function(err, userInfo) {
+  authenticate: function (req, res, next) {
+    userModel.findOne({ email: req.body.email }, function (err, userInfo) {
       if (err) {
         next(err)
       } else {
         // user not found
         if (!userInfo) {
           return res.send({
-            status: 'error',
+            success: false,
             message: 'invalid user',
           })
         }
@@ -71,7 +65,7 @@ module.exports = {
             { expiresIn: '1d' }
           )
           res.json({
-            status: 'success',
+            success: true,
             message: 'user authenticated',
             data: {
               id: userInfo._id,
@@ -82,7 +76,7 @@ module.exports = {
           })
         } else {
           res.status(401).send({
-            status: 'error',
+            success: false,
             message: 'invalid credentials',
           })
         }
@@ -90,16 +84,16 @@ module.exports = {
     })
   },
 
-  refresh: function(req, res, next) {
+  refresh: function (req, res, next) {
     // not exactly refresh, will need the consumer to keep track of token
     // expiry date and ask for a new token while the old one is still active
     jwt.verify(
       req.headers['x-access-token'],
       req.app.get('secretKey'),
-      function(err, decoded) {
+      function (err, decoded) {
         if (err) {
           res.status(401).send({
-            status: 'error',
+            success: false,
             message: 'access error',
           })
         } else {
@@ -110,7 +104,7 @@ module.exports = {
           )
 
           res.json({
-            status: 'success',
+            success: true,
             message: 'new token issued',
             data: {
               id: decoded.id,
@@ -123,12 +117,12 @@ module.exports = {
     )
   },
 
-  getAll: function(req, res, next) {
-    userModel.find({}, function(err, users) {
+  getAll: function (req, res, next) {
+    userModel.find({}, function (err, users) {
       if (err) {
         next(err)
       } else {
-        const usersList = users.map(user => {
+        const usersList = users.map((user) => {
           return {
             id: user._id,
             name: user.name,
@@ -137,7 +131,7 @@ module.exports = {
         })
 
         res.json({
-          status: 'success',
+          success: true,
           message: 'user list found',
           data: { users: usersList },
         })
@@ -149,7 +143,7 @@ module.exports = {
   // - generate token with short lifespan
   // - send token to user as a link: https://domain/reset?token=12345
   // - save token in db
-  recover: function(req, res, next) {
+  recover: function (req, res, next) {
     // generate recovery token that is saved in db for later confimration and
     // is sent to user via email as part of recovery link
     const recoveryToken = generateRecoveryToken()
@@ -160,14 +154,14 @@ module.exports = {
         recoveryToken,
         recoveryTokenExp: isoDateWithOffset(transportConfig.recoveryTokenExp),
       },
-      function(err, userInfo) {
+      function (err, userInfo) {
         if (err) {
           next(err)
         } else {
           // user not found
           if (!userInfo) {
             return res.send({
-              status: 'error',
+              success: false,
               message: 'invalid user',
             })
           } else {
@@ -176,12 +170,12 @@ module.exports = {
               sendRecoveryEmail(userInfo.email, recoveryToken)
 
               res.json({
-                status: 'success',
+                success: true,
                 message: 'email sent',
               })
             } catch (e) {
               res.json({
-                status: 'error',
+                success: false,
                 message: 'email not sent',
               })
             }
@@ -193,16 +187,16 @@ module.exports = {
   // reset is a function that will allow users to reset the forgotten password:
   // - check if user and token are legit and not expired
   // - update password in db
-  reset: function(req, res, next) {
+  reset: function (req, res, next) {
     userModel.findOne(
       { email: req.body.email, token: req.body.recoveryToken },
-      function(err, userInfo) {
+      function (err, userInfo) {
         if (err) {
           next(err)
         } else {
           if (!userInfo) {
             return res.send({
-              status: 'error',
+              success: false,
               message: 'invalid user',
             })
           } else {
@@ -219,12 +213,12 @@ module.exports = {
               userInfo.save()
 
               res.json({
-                status: 'success',
+                success: true,
                 message: 'password updated',
               })
             } else {
               res.json({
-                status: 'error',
+                success: false,
                 message: 'expired token',
               })
             }
