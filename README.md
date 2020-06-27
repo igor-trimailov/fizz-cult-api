@@ -1,5 +1,8 @@
 # fizz-cult-app
 
+To deply the app, simply run:
+- git push heroku master
+
 Simple backend api for a physical exercise app
 
 Features:
