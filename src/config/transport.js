@@ -2,7 +2,7 @@
 const externalConf = require('../../extconf')
 
 module.exports = {
-  transportTokenExp: 60 * 60 * 1000,
+  recoveryTokenExp: 60 * 60 * 1000,
   email: process.env.TRANSPORT_EMAIL || externalConf.TRANSPORT_EMAIL,
   clientId: process.env.TRANSPORT_CLIENT_ID || externalConf.TRANSPORT_CLIENT_ID,
   clientSecret: process.env.TRANSPORT_CLIENT_SECRET || externalConf.TRANSPORT_CLIENT_SECRET,
